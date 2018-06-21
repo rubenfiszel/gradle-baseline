@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
+import org.gradle.language.base.plugins.LifecycleBasePlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +51,10 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
                 project.getExtensions().create("baselineSpotless", BaselineSpotlessExtension.class);
 
         project.getPlugins().apply(SpotlessPlugin.class);
+
+        project.getPlugins().withType(LifecycleBasePlugin.class, lifecycleBasePlugin -> {
+            project.getTasks().getByName(LifecycleBasePlugin.CHECK_TASK_NAME).dependsOn("spotlessCheck");
+        });
 
         Optional<String> copyright = loadCopyright();
 
