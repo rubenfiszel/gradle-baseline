@@ -77,7 +77,8 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
                 userData.ifPresent(ktlint::userData);
             });
             spotlessExtension.kotlin(kotlinExtension -> {
-                copyright.ifPresent(kotlinExtension::licenseHeader);
+                // Don't use method reference, the return type is not public and they will break.
+                copyright.ifPresent(licenseHeader -> kotlinExtension.licenseHeader(licenseHeader));
                 KotlinExtension.KotlinFormatExtension ktlint =
                         ktlintVersion.map(kotlinExtension::ktlint).orElseGet(kotlinExtension::ktlint);
                 userData.ifPresent(ktlint::userData);
@@ -87,16 +88,13 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
             File grEclipsePropertiesFile = getSpotlessConfigDir().resolve("greclipse.properties").toFile();
             spotlessExtension.groovyGradle(groovyGradleExtension -> {
                 groovyGradleExtension.target("*.gradle", "gradle/*.gradle");
-                groovyGradleExtension
-                        .greclipse()
-                        .configFile(grEclipsePropertiesFile);
+                groovyGradleExtension.greclipse().configFile(grEclipsePropertiesFile);
                 groovyGradleExtension.indentWithSpaces(4);
             });
             spotlessExtension.groovy(groovyExtension -> {
-                groovyExtension
-                        .greclipse()
-                        .configFile(grEclipsePropertiesFile);
-                copyright.ifPresent(groovyExtension::licenseHeader);
+                groovyExtension.greclipse().configFile(grEclipsePropertiesFile);
+                // Don't use method reference, the return type is not public and they will break.
+                copyright.ifPresent(licenseHeader -> groovyExtension.licenseHeader(licenseHeader));
             });
         }));
     }
