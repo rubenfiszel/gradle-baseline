@@ -107,29 +107,27 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
      */
     private Optional<String> loadCopyright() {
         Path copyrightDir = Paths.get(getConfigDir()).resolve("copyright");
-        Stream<Path> copyrightFiles;
         if (!Files.isDirectory(copyrightDir)) {
             log.warn("Copyright directory doesn't exist: {}", copyrightDir);
             return Optional.empty();
         }
-        try {
-            copyrightFiles = Files.list(copyrightDir);
+        try (Stream<Path> copyrightFiles = Files.list(copyrightDir)) {
+            Optional<Path> fileOpt = copyrightFiles.sorted().findFirst();
+            return fileOpt.map(file -> {
+                try (Stream<String> lines = Files.lines(file)) {
+                    return lines
+                            .map(line -> line.replaceAll("\\$\\{today\\.year}", "$YEAR"))
+                            .collect(Collectors.joining("\n"));
+                } catch (IOException e) {
+                    throw new GradleException("Error while reading copyright file " + file, e);
+                }
+            });
         } catch (IOException e) {
             log.warn("Encountered exception listing copyright directory: {}", copyrightDir, e);
             return Optional.empty();
         }
 
-        Optional<Path> fileOpt = copyrightFiles.sorted().findFirst();
-        return fileOpt.map(file -> {
-            try {
-                return Files
-                        .lines(file)
-                        .map(line -> line.replaceAll("\\$\\{today\\.year}", "$YEAR"))
-                        .collect(Collectors.joining("\n"));
-            } catch (IOException e) {
-                throw new GradleException("Error while reading copyright file " + file, e);
-            }
-        });
+
     }
 
     private Path getSpotlessConfigDir() {
