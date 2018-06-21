@@ -34,11 +34,15 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Configures the Gradle 'com.diffplug.gradle.spotless' plugin with Baseline settings.
  */
 public final class BaselineSpotless extends AbstractBaselinePlugin {
+    private static final Logger log = LoggerFactory.getLogger(BaselineSpotless.class);
+
     public void apply(final Project project) {
         this.project = project;
 
@@ -47,7 +51,7 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
 
         project.getPlugins().apply(SpotlessPlugin.class);
 
-        File copyrightFile = findCopyrightFile();
+        Optional<String> copyright = loadCopyright();
 
         // afterEvaluate because it's not easy to re-configure
         project.afterEvaluate(p -> project.getExtensions().configure(SpotlessExtension.class, spotlessExtension -> {
@@ -73,7 +77,7 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
                 userData.ifPresent(ktlint::userData);
             });
             spotlessExtension.kotlin(kotlinExtension -> {
-                kotlinExtension.licenseHeaderFile(copyrightFile);
+                copyright.ifPresent(kotlinExtension::licenseHeader);
                 KotlinExtension.KotlinFormatExtension ktlint =
                         ktlintVersion.map(kotlinExtension::ktlint).orElseGet(kotlinExtension::ktlint);
                 userData.ifPresent(ktlint::userData);
@@ -92,24 +96,40 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
                 groovyExtension
                         .greclipse()
                         .configFile(grEclipsePropertiesFile);
-                groovyExtension.licenseHeaderFile(copyrightFile);
+                copyright.ifPresent(groovyExtension::licenseHeader);
             });
         }));
     }
 
-    private File findCopyrightFile() {
+    /**
+     * Loads the first copyright inside the {@code getConfigDir() + "/copyright"} directory and converts it to the
+     * format that spotless expects - using {@code $YEAR} instead of {@code ${today.year}}.
+     */
+    private Optional<String> loadCopyright() {
         Path copyrightDir = Paths.get(getConfigDir()).resolve("copyright");
         Stream<Path> copyrightFiles;
+        if (!Files.isDirectory(copyrightDir)) {
+            log.warn("Copyright directory doesn't exist: {}", copyrightDir);
+            return Optional.empty();
+        }
         try {
             copyrightFiles = Files.list(copyrightDir);
         } catch (IOException e) {
-            throw new GradleException("Couldn't list the copyright directory: " + copyrightDir, e);
+            log.warn("Encountered exception listing copyright directory: {}", copyrightDir, e);
+            return Optional.empty();
         }
-        return copyrightFiles
-                .sorted()
-                .findFirst()
-                .orElseThrow(() -> new GradleException("Couldn't find any copyright inside " + copyrightDir))
-                .toFile();
+
+        Optional<Path> fileOpt = copyrightFiles.sorted().findFirst();
+        return fileOpt.map(file -> {
+            try {
+                return Files
+                        .lines(file)
+                        .map(line -> line.replaceAll("\\$\\{today\\.year}", "$YEAR"))
+                        .collect(Collectors.joining("\n"));
+            } catch (IOException e) {
+                throw new GradleException("Error while reading copyright file " + file, e);
+            }
+        });
     }
 
     private Path getSpotlessConfigDir() {
