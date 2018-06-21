@@ -11,6 +11,7 @@ dependencies {
     compile gradleApi()
     compile 'net.ltgt.gradle:gradle-errorprone-plugin'
     compile 'com.google.guava:guava'
+    compile 'com.diffplug.spotless:spotless-plugin-gradle'
 
     testCompile gradleTestKit()
     testCompile 'com.netflix.nebula:nebula-test' // for better temp directory junit rule only
@@ -38,9 +39,9 @@ pluginBundle {
             id = 'com.palantir.baseline'
             displayName = 'Palantir Baseline Plugins'
         }
-        baselineCheckstylePlugin {
-            id = 'com.palantir.baseline-checkstyle'
-            displayName = 'Palantir Baseline Checkstyle Plugin'
+        baselineSpotlessPlugin {
+            id = 'com.palantir.baseline-spotless'
+            displayName = 'Palantir Baseline Spotless Plugin'
         }
         baselineConfigPlugin {
             id = 'com.palantir.baseline-config'
