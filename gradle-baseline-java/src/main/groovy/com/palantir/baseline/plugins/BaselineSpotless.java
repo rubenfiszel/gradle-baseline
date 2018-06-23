@@ -35,6 +35,7 @@ import java.util.stream.Stream;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.GroovyBasePlugin;
+import org.gradle.api.plugins.JavaBasePlugin;
 import org.gradle.language.base.plugins.LifecycleBasePlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,14 +90,15 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
                     ktlintVersion.map(kotlinGradleExtension::ktlint).orElseGet(kotlinGradleExtension::ktlint);
             userData.ifPresent(ktlint::userData);
         });
-        spotlessExtension.kotlin(kotlinExtension -> {
-            kotlinExtension.target();
-            // Don't use method reference, the return type is not public and they will break.
-            copyright.ifPresent(licenseHeader -> kotlinExtension.licenseHeader(licenseHeader));
-            KotlinExtension.KotlinFormatExtension ktlint =
-                    ktlintVersion.map(kotlinExtension::ktlint).orElseGet(kotlinExtension::ktlint);
-            userData.ifPresent(ktlint::userData);
-        });
+        if (project.getPlugins().hasPlugin(JavaBasePlugin.class)) {
+            spotlessExtension.kotlin(kotlinExtension -> {
+                // Don't use method reference, the return type is not public and they will break.
+                copyright.ifPresent(licenseHeader -> kotlinExtension.licenseHeader(licenseHeader));
+                KotlinExtension.KotlinFormatExtension ktlint =
+                        ktlintVersion.map(kotlinExtension::ktlint).orElseGet(kotlinExtension::ktlint);
+                userData.ifPresent(ktlint::userData);
+            });
+        }
 
         // Gradle
         File grEclipsePropertiesFile = getSpotlessConfigDir().resolve("greclipse.properties").toFile();
