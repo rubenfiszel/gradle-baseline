@@ -30,6 +30,7 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.gradle.api.GradleException;
@@ -120,7 +121,8 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
 
     /**
      * Loads the first copyright inside the {@code getConfigDir() + "/copyright"} directory and converts it to the
-     * format that spotless expects - using {@code $YEAR} instead of {@code ${today.year}}.
+     * format that spotless expects - using {@code $YEAR} instead of {@code ${today.year}}, and already wrapped in a
+     * comment.
      */
     private Optional<String> loadCopyright() {
         Path copyrightDir = Paths.get(getConfigDir()).resolve("copyright");
@@ -132,8 +134,13 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
             Optional<Path> fileOpt = copyrightFiles.sorted().findFirst();
             return fileOpt.map(file -> {
                 try (Stream<String> lines = Files.lines(file)) {
-                    return lines
-                            .map(line -> line.replaceAll("\\$\\{today\\.year}", "\\$YEAR"))
+                    return Stream.of(
+                            Stream.of("/*"),
+                            lines
+                                    .map(line -> line.replaceAll("\\$\\{today\\.year}", "\\$YEAR"))
+                                    .map(line -> " * " + line),
+                            Stream.of(" */"))
+                            .flatMap(Function.identity())
                             .collect(Collectors.joining("\n"));
                 } catch (IOException e) {
                     throw new GradleException("Error while reading copyright file " + file, e);
