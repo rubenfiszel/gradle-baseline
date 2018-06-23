@@ -138,8 +138,7 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
                             Stream.of("/*"),
                             lines
                                     .map(line -> line.replaceAll("\\$\\{today\\.year}", "\\$YEAR"))
-                                    .map(line -> " * " + line),
-                            Stream.of(" */"))
+                                    .map(line -> " * " + line))
                             .flatMap(Function.identity())
                             .collect(Collectors.joining("\n"));
                 } catch (IOException e) {
