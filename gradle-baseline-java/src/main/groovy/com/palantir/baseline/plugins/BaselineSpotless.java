@@ -50,8 +50,6 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
         BaselineSpotlessExtension extension =
                 project.getExtensions().create("baselineSpotless", BaselineSpotlessExtension.class);
 
-        project.getPlugins().apply(SpotlessPlugin.class);
-
         project.getPlugins().withType(LifecycleBasePlugin.class, lifecycleBasePlugin -> {
             project.getTasks().getByName(LifecycleBasePlugin.CHECK_TASK_NAME).dependsOn("spotlessCheck");
         });
@@ -59,49 +57,58 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
         Optional<String> copyright = loadCopyright();
 
         // afterEvaluate because it's not easy to re-configure
-        project.afterEvaluate(p -> project.getExtensions().configure(SpotlessExtension.class, spotlessExtension -> {
-            Path ktLintPropertiesFile = getSpotlessConfigDir().resolve("ktlint.properties");
-            Optional<Map<String, String>> userData;
-            if (Files.exists(ktLintPropertiesFile)) {
-                userData = Optional.of(FormatterProperties
-                        .from(ktLintPropertiesFile.toFile())
-                        .getProperties()
-                        .entrySet()
-                        .stream()
-                        .map(entry -> Maps.immutableEntry(entry.getKey().toString(), entry.getValue().toString()))
-                        .collect(Collectors.toMap(Entry::getKey, Entry::getValue)));
-            } else {
-                userData = Optional.empty();
-            }
+        project.afterEvaluate(p -> project.getExtensions().configure(
+                SpotlessExtension.class,
+                spotlessExtension -> configureSpotlessExtension(extension, copyright, spotlessExtension)));
 
-            // Kotlin
-            Optional<String> ktlintVersion = Optional.ofNullable(extension.getKtlintVersion());
-            spotlessExtension.kotlinGradle(kotlinGradleExtension -> {
-                KotlinGradleExtension.KotlinFormatExtension ktlint =
-                        ktlintVersion.map(kotlinGradleExtension::ktlint).orElseGet(kotlinGradleExtension::ktlint);
-                userData.ifPresent(ktlint::userData);
-            });
-            spotlessExtension.kotlin(kotlinExtension -> {
-                // Don't use method reference, the return type is not public and they will break.
-                copyright.ifPresent(licenseHeader -> kotlinExtension.licenseHeader(licenseHeader));
-                KotlinExtension.KotlinFormatExtension ktlint =
-                        ktlintVersion.map(kotlinExtension::ktlint).orElseGet(kotlinExtension::ktlint);
-                userData.ifPresent(ktlint::userData);
-            });
+        // NOTE: the plugin MUST be loaded AFTER our own afterEvaluate hook
+        project.getPlugins().apply(SpotlessPlugin.class);
+    }
 
-            // Gradle
-            File grEclipsePropertiesFile = getSpotlessConfigDir().resolve("greclipse.properties").toFile();
-            spotlessExtension.groovyGradle(groovyGradleExtension -> {
-                groovyGradleExtension.target("*.gradle", "gradle/*.gradle");
-                groovyGradleExtension.greclipse().configFile(grEclipsePropertiesFile);
-                groovyGradleExtension.indentWithSpaces(4);
-            });
-            spotlessExtension.groovy(groovyExtension -> {
-                groovyExtension.greclipse().configFile(grEclipsePropertiesFile);
-                // Don't use method reference, the return type is not public and they will break.
-                copyright.ifPresent(licenseHeader -> groovyExtension.licenseHeader(licenseHeader));
-            });
-        }));
+    private void configureSpotlessExtension(
+            BaselineSpotlessExtension extension, Optional<String> copyright, SpotlessExtension spotlessExtension) {
+        Path ktLintPropertiesFile = getSpotlessConfigDir().resolve("ktlint.properties");
+        Optional<Map<String, String>> userData;
+        if (Files.exists(ktLintPropertiesFile)) {
+            userData = Optional.of(FormatterProperties
+                    .from(ktLintPropertiesFile.toFile())
+                    .getProperties()
+                    .entrySet()
+                    .stream()
+                    .map(entry -> Maps.immutableEntry(entry.getKey().toString(), entry.getValue().toString()))
+                    .collect(Collectors.toMap(Entry::getKey, Entry::getValue)));
+        } else {
+            userData = Optional.empty();
+        }
+
+        // Kotlin
+        Optional<String> ktlintVersion = Optional.ofNullable(extension.getKtlintVersion());
+        spotlessExtension.kotlinGradle(kotlinGradleExtension -> {
+            KotlinGradleExtension.KotlinFormatExtension ktlint =
+                    ktlintVersion.map(kotlinGradleExtension::ktlint).orElseGet(kotlinGradleExtension::ktlint);
+            userData.ifPresent(ktlint::userData);
+        });
+        spotlessExtension.kotlin(kotlinExtension -> {
+            kotlinExtension.target();
+            // Don't use method reference, the return type is not public and they will break.
+            copyright.ifPresent(licenseHeader -> kotlinExtension.licenseHeader(licenseHeader));
+            KotlinExtension.KotlinFormatExtension ktlint =
+                    ktlintVersion.map(kotlinExtension::ktlint).orElseGet(kotlinExtension::ktlint);
+            userData.ifPresent(ktlint::userData);
+        });
+
+        // Gradle
+        File grEclipsePropertiesFile = getSpotlessConfigDir().resolve("greclipse.properties").toFile();
+        spotlessExtension.groovyGradle(groovyGradleExtension -> {
+            groovyGradleExtension.target("*.gradle", "gradle/*.gradle");
+            groovyGradleExtension.greclipse().configFile(grEclipsePropertiesFile);
+            groovyGradleExtension.indentWithSpaces(4);
+        });
+        spotlessExtension.groovy(groovyExtension -> {
+            groovyExtension.greclipse().configFile(grEclipsePropertiesFile);
+            // Don't use method reference, the return type is not public and they will break.
+            copyright.ifPresent(licenseHeader -> groovyExtension.licenseHeader(licenseHeader));
+        });
     }
 
     /**
