@@ -129,7 +129,7 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
             return fileOpt.map(file -> {
                 try (Stream<String> lines = Files.lines(file)) {
                     return lines
-                            .map(line -> line.replaceAll("\\$\\{today\\.year}", "$YEAR"))
+                            .map(line -> line.replaceAll("\\$\\{today\\.year}", "\\$YEAR"))
                             .collect(Collectors.joining("\n"));
                 } catch (IOException e) {
                     throw new GradleException("Error while reading copyright file " + file, e);
