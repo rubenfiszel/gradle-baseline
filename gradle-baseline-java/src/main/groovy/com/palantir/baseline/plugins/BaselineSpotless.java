@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
+import org.gradle.api.plugins.GroovyBasePlugin;
 import org.gradle.language.base.plugins.LifecycleBasePlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,11 +105,13 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
             groovyGradleExtension.greclipse().configFile(grEclipsePropertiesFile);
             groovyGradleExtension.indentWithSpaces(4);
         });
-        spotlessExtension.groovy(groovyExtension -> {
-            groovyExtension.greclipse().configFile(grEclipsePropertiesFile);
-            // Don't use method reference, the return type is not public and they will break.
-            copyright.ifPresent(licenseHeader -> groovyExtension.licenseHeader(licenseHeader));
-        });
+        if (project.getPlugins().hasPlugin(GroovyBasePlugin.class)) {
+            spotlessExtension.groovy(groovyExtension -> {
+                groovyExtension.greclipse().configFile(grEclipsePropertiesFile);
+                // Don't use method reference, the return type is not public and they will break.
+                copyright.ifPresent(licenseHeader -> groovyExtension.licenseHeader(licenseHeader));
+            });
+        }
     }
 
     /**
