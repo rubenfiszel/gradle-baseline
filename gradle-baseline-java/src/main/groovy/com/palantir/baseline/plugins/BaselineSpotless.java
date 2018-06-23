@@ -139,8 +139,6 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
             log.warn("Encountered exception listing copyright directory: {}", copyrightDir, e);
             return Optional.empty();
         }
-
-
     }
 
     private Path getSpotlessConfigDir() {
