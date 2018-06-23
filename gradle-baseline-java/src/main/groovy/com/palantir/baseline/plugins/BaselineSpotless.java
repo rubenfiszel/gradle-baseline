@@ -86,6 +86,7 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
         // Kotlin
         Optional<String> ktlintVersion = Optional.ofNullable(extension.getKtlintVersion());
         spotlessExtension.kotlinGradle(kotlinGradleExtension -> {
+            kotlinGradleExtension.target("**/*.kts");
             KotlinGradleExtension.KotlinFormatExtension ktlint =
                     ktlintVersion.map(kotlinGradleExtension::ktlint).orElseGet(kotlinGradleExtension::ktlint);
             userData.ifPresent(ktlint::userData);
@@ -94,6 +95,7 @@ public final class BaselineSpotless extends AbstractBaselinePlugin {
             spotlessExtension.kotlin(kotlinExtension -> {
                 // Don't use method reference, the return type is not public and they will break.
                 copyright.ifPresent(licenseHeader -> kotlinExtension.licenseHeader(licenseHeader));
+                kotlinExtension.target("**/*.kt");
                 KotlinExtension.KotlinFormatExtension ktlint =
                         ktlintVersion.map(kotlinExtension::ktlint).orElseGet(kotlinExtension::ktlint);
                 userData.ifPresent(ktlint::userData);
