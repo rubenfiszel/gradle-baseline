@@ -17,7 +17,7 @@
 package com.palantir.baseline.plugins;
 
 public class BaselineSpotlessExtension {
-    private String ktlintVersion;
+    private String ktlintVersion = "0.24.0";
 
     public final String getKtlintVersion() {
         return ktlintVersion;
