@@ -42,7 +42,6 @@ class BaselineSpotlessIntegrationTest extends IntegrationSpec {
     '''.stripIndent()
 
     def setup() {
-        logLevel = LogLevel.DEBUG
         buildFile << '''
             plugins { id 'nebula.kotlin' version '1.2.40' apply false }
             // Need this to resolve things like kotlin-stdlib-jdk8
